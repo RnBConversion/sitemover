@@ -6,7 +6,9 @@ jQuery( function ( $ ) {
 	var currentJobId  = null;
 	var exportAborted = false;
 	var exportStart   = 0;
-	var i18n          = SiteMover.i18n;
+	var i18n              = SiteMover.i18n;
+	var IMPORT_CHUNK_SIZE = SiteMover.importChunkSize;
+	var IMPORT_SIZE_LIMIT = SiteMover.importSizeLimit;
 
 	// ── Helpers ────────────────────────────────────────────────────────────
 
@@ -79,8 +81,8 @@ jQuery( function ( $ ) {
 			alert( i18n.selectZip );
 			return;
 		}
-		if ( SiteMover.maxUpload && file.size > SiteMover.maxUpload ) {
-			alert( i18n.fileTooBig.replace( '%s', fmtSize( SiteMover.maxUpload ) ) );
+		if ( IMPORT_SIZE_LIMIT && file.size > IMPORT_SIZE_LIMIT ) {
+			alert( i18n.fileTooLarge );
 			return;
 		}
 		selectedFile = file;
@@ -230,49 +232,100 @@ jQuery( function ( $ ) {
 
 		$fill.css( 'width', '2%' );
 		$pct.text( '2%' );
-		$status.text( i18n.uploading );
+		$status.text( i18n.preparing );
 
-		var form = new FormData();
-		form.append( 'action',   'sitemover_import' );
-		form.append( 'nonce',    SiteMover.nonce );
-		form.append( 'zip_file', selectedFile );
+		var totalChunks = Math.ceil( selectedFile.size / IMPORT_CHUNK_SIZE );
+		var uploadId    = generateUploadId();
 
-		$.ajax( {
-			url:         SiteMover.ajaxUrl,
-			type:        'POST',
-			data:        form,
-			processData: false,
-			contentType: false,
-			timeout:     600000,
-			xhr: function () {
-				var xhr = new XMLHttpRequest();
-				xhr.upload.addEventListener( 'progress', function ( e ) {
-					if ( e.lengthComputable ) {
-						var p = Math.max( 2, Math.round( ( e.loaded / e.total ) * 60 ) );
-						$fill.css( 'width', p + '%' );
-						$pct.text( p + '%' );
-						$status.text( i18n.uploading + ' ' + p + '%' );
-					}
-				} );
-				return xhr;
-			},
-		} ).done( function ( r ) {
-			$fill.css( 'width', '100%' );
-			$pct.text( '100%' );
-			$status.text( i18n.done );
-			if ( r.success ) {
-				$result.addClass( 'is-success' ).html(
-					'<strong>' + i18n.importSuccess + '</strong><br>' + r.data.message +
-					'<br><br><a href="' + window.location.origin + '" target="_blank">' + i18n.openSite + ' &rarr;</a>'
-				);
-			} else {
-				$result.addClass( 'is-error' ).html( '<strong>' + i18n.error + ':</strong> ' + r.data.message );
-			}
-		} ).fail( function () {
-			$result.addClass( 'is-error' ).html( i18n.importFailed );
-		} ).always( function () {
+		uploadNextChunk( uploadId, 0, totalChunks );
+
+		function uploadNextChunk( uid, idx, total ) {
+			var start = idx * IMPORT_CHUNK_SIZE;
+			var end   = Math.min( start + IMPORT_CHUNK_SIZE, selectedFile.size );
+			var chunk = selectedFile.slice( start, end );
+
+			var pct = Math.max( 2, Math.round( idx / total * 85 ) );
+			$fill.css( 'width', pct + '%' );
+			$pct.text( pct + '%' );
+			$status.text( i18n.uploading + ' ' + ( idx + 1 ) + ' / ' + total );
+
+			var form = new FormData();
+			form.append( 'action',      'sitemover_import_chunk' );
+			form.append( 'nonce',       SiteMover.nonce );
+			form.append( 'upload_id',   uid );
+			form.append( 'chunk_index', idx );
+			form.append( 'chunk',       chunk, selectedFile.name );
+
+			$.ajax( {
+				url:         SiteMover.ajaxUrl,
+				type:        'POST',
+				data:        form,
+				processData: false,
+				contentType: false,
+				timeout:     300000,
+			} ).done( function ( r ) {
+				if ( ! r.success ) {
+					importFailed( r.data.message );
+					return;
+				}
+				if ( idx + 1 < total ) {
+					uploadNextChunk( uid, idx + 1, total );
+				} else {
+					finalizeImport( uid, total );
+				}
+			} ).fail( function () {
+				importFailed( i18n.requestFailed );
+			} );
+		}
+
+		function finalizeImport( uid, total ) {
+			$fill.css( 'width', '90%' );
+			$pct.text( '90%' );
+			$status.text( i18n.importing );
+
+			$.ajax( {
+				url:     SiteMover.ajaxUrl,
+				type:    'POST',
+				data:    {
+					action:       'sitemover_import_finalize',
+					nonce:        SiteMover.nonce,
+					upload_id:    uid,
+					total_chunks: total,
+					filename:     selectedFile.name,
+				},
+				timeout: 600000,
+			} ).done( function ( r ) {
+				$fill.css( 'width', '100%' );
+				$pct.text( '100%' );
+				$status.text( i18n.done );
+				if ( r.success ) {
+					$result.addClass( 'is-success' ).html(
+						'<strong>' + i18n.importSuccess + '</strong><br>' + r.data.message +
+						'<br><br><a href="' + window.location.origin + '" target="_blank">' + i18n.openSite + ' &rarr;</a>'
+					);
+				} else {
+					$result.addClass( 'is-error' ).html( '<strong>' + i18n.error + ':</strong> ' + r.data.message );
+				}
+				$prog.prop( 'hidden', true );
+				$btn.prop( 'disabled', false );
+			} ).fail( function () {
+				importFailed( i18n.importFailed );
+			} );
+		}
+
+		function importFailed( msg ) {
+			$result.addClass( 'is-error' ).html( msg );
 			$prog.prop( 'hidden', true );
 			$btn.prop( 'disabled', false );
-		} );
+		}
 	} );
+
+	function generateUploadId() {
+		var chars  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		var result = '';
+		for ( var i = 0; i < 20; i++ ) {
+			result += chars.charAt( Math.floor( Math.random() * chars.length ) );
+		}
+		return result;
+	}
 } );

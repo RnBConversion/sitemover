@@ -11,8 +11,9 @@ class SiteMover_Admin {
 		add_action( 'wp_ajax_sitemover_export_init',   array( $this, 'ajax_export_init' ) );
 		add_action( 'wp_ajax_sitemover_export_chunk',  array( $this, 'ajax_export_chunk' ) );
 		add_action( 'wp_ajax_sitemover_export_cancel', array( $this, 'ajax_export_cancel' ) );
-		add_action( 'wp_ajax_sitemover_import', array( $this, 'ajax_import' ) );
-		add_action( 'wp_ajax_sitemover_dl',     array( $this, 'ajax_download' ) );
+		add_action( 'wp_ajax_sitemover_import_chunk',    array( $this, 'ajax_import_chunk' ) );
+		add_action( 'wp_ajax_sitemover_import_finalize', array( $this, 'ajax_import_finalize' ) );
+		add_action( 'wp_ajax_sitemover_dl',              array( $this, 'ajax_download' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -54,14 +55,14 @@ class SiteMover_Admin {
 		);
 
 		wp_localize_script( 'sitemover', 'SiteMover', array(
-			'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-			'nonce'     => wp_create_nonce( 'sitemover' ),
-			'maxUpload' => wp_max_upload_size(),
-			'chunkSize' => 50,
-			'i18n'      => array(
+			'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
+			'nonce'           => wp_create_nonce( 'sitemover' ),
+			'importChunkSize' => min( 50 * 1024 * 1024, (int) ( wp_max_upload_size() * 0.5 ) ),
+			'importSizeLimit' => 2 * 1024 * 1024 * 1024,
+			'chunkSize'       => 50,
+			'i18n'            => array(
 				'selectZip'       => __( 'Please select a .zip file.', 'sitemover' ),
-				/* translators: %s = maximum upload size (e.g. "128 MB") */
-				'fileTooBig'      => __( 'File exceeds server upload limit (%s).', 'sitemover' ),
+				'fileTooLarge'    => __( 'File exceeds the 2 GB import limit.', 'sitemover' ),
 				'preparing'       => __( 'Preparing…', 'sitemover' ),
 				'initializing'    => __( 'Initializing…', 'sitemover' ),
 				'requestFailed'   => __( 'Request failed or timed out. Try again.', 'sitemover' ),
@@ -71,6 +72,7 @@ class SiteMover_Admin {
 				'exportCompleted' => __( 'Export complete!', 'sitemover' ),
 				'downloadZip'     => __( 'Download ZIP', 'sitemover' ),
 				'uploading'       => __( 'Uploading…', 'sitemover' ),
+				'importing'       => __( 'Importing…', 'sitemover' ),
 				'importSuccess'   => __( 'Import successful!', 'sitemover' ),
 				'openSite'        => __( 'Open site', 'sitemover' ),
 				'importFailed'    => __( 'Import failed or timed out. Check server PHP limits.', 'sitemover' ),
@@ -89,7 +91,6 @@ class SiteMover_Admin {
 			wp_die( esc_html__( 'Insufficient permissions.', 'sitemover' ) );
 		}
 
-		$max_upload = size_format( wp_max_upload_size() );
 		?>
 		<div class="wrap sitemover-wrap">
 
@@ -182,13 +183,7 @@ class SiteMover_Admin {
 						<div class="sitemover-drop-zone" id="sitemover-drop-zone" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'Upload ZIP file', 'sitemover' ); ?>">
 							<span class="dashicons dashicons-media-archive"></span>
 							<p><?php echo wp_kses( __( 'Drop ZIP here or <u>browse</u>', 'sitemover' ), array( 'u' => array() ) ); ?></p>
-							<small><?php
-								printf(
-									/* translators: %s = maximum upload size (e.g. "128 MB") */
-									esc_html__( 'Max upload: %s', 'sitemover' ),
-									esc_html( $max_upload )
-								);
-							?></small>
+							<small><?php esc_html_e( 'Max import: 2 GB', 'sitemover' ); ?></small>
 							<input type="file" id="sitemover-file-input" accept=".zip" aria-hidden="true">
 						</div>
 
@@ -304,30 +299,100 @@ class SiteMover_Admin {
 	}
 
 	// -------------------------------------------------------------------------
-	// AJAX: import
+	// AJAX: import — receive one chunk
 	// -------------------------------------------------------------------------
 
-	public function ajax_import() {
+	public function ajax_import_chunk() {
 		check_ajax_referer( 'sitemover', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sitemover' ) ), 403 );
 		}
 
-		if ( empty( $_FILES['zip_file'] ) ) {
-			wp_send_json_error( array( 'message' => __( 'No file received.', 'sitemover' ) ) );
+		$upload_id   = sanitize_text_field( wp_unslash( $_POST['upload_id'] ?? '' ) );
+		$chunk_index = absint( $_POST['chunk_index'] ?? 0 );
+
+		if ( ! $upload_id || ! preg_match( '/^[A-Za-z0-9]{20}$/', $upload_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid upload ID.', 'sitemover' ) ) );
 		}
 
+		if ( empty( $_FILES['chunk'] ) || $_FILES['chunk']['error'] !== UPLOAD_ERR_OK ) {
+			wp_send_json_error( array( 'message' => __( 'Chunk upload failed.', 'sitemover' ) ) );
+		}
+
+		if ( ! file_exists( SITEMOVER_EXPORT_DIR ) ) {
+			wp_mkdir_p( SITEMOVER_EXPORT_DIR );
+		}
+
+		$chunk_path = SITEMOVER_EXPORT_DIR . 'upload_' . $upload_id . '_chunk_' . $chunk_index;
+
+		if ( ! move_uploaded_file( sanitize_text_field( wp_unslash( $_FILES['chunk']['tmp_name'] ) ), $chunk_path ) ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot save chunk.', 'sitemover' ) ) );
+		}
+
+		wp_send_json_success( array( 'chunk' => $chunk_index ) );
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: import — reassemble chunks and run import
+	// -------------------------------------------------------------------------
+
+	public function ajax_import_finalize() {
+		set_time_limit( 600 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		check_ajax_referer( 'sitemover', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sitemover' ) ), 403 );
+		}
+
+		$upload_id    = sanitize_text_field( wp_unslash( $_POST['upload_id'] ?? '' ) );
+		$total_chunks = absint( $_POST['total_chunks'] ?? 0 );
+		$filename     = sanitize_file_name( wp_unslash( $_POST['filename'] ?? '' ) );
+
+		if ( ! $upload_id || ! preg_match( '/^[A-Za-z0-9]{20}$/', $upload_id ) || ! $total_chunks || ! $filename ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid parameters.', 'sitemover' ) ) );
+		}
+
+		$zip_path = SITEMOVER_EXPORT_DIR . 'upload_' . $upload_id . '.zip';
+
+		// Stream-reassemble chunks to avoid loading the whole file into memory.
+		$fp = fopen( $zip_path, 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $fp ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot create upload file.', 'sitemover' ) ) );
+		}
+
+		for ( $i = 0; $i < $total_chunks; $i++ ) {
+			$chunk_path = SITEMOVER_EXPORT_DIR . 'upload_' . $upload_id . '_chunk_' . $i;
+			if ( ! file_exists( $chunk_path ) ) {
+				fclose( $fp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+				wp_delete_file( $zip_path );
+				wp_send_json_error( array( 'message' => sprintf(
+					/* translators: %d = chunk number */
+					__( 'Missing chunk %d.', 'sitemover' ), $i
+				) ) );
+			}
+			$chunk_fp = fopen( $chunk_path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			while ( ! feof( $chunk_fp ) ) {
+				fwrite( $fp, fread( $chunk_fp, 65536 ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite, WordPress.WP.AlternativeFunctions.file_system_operations_fread
+			}
+			fclose( $chunk_fp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			wp_delete_file( $chunk_path );
+		}
+
+		fclose( $fp ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
 		$zip_file = array(
-			'name'     => isset( $_FILES['zip_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['zip_file']['name'] ) ) : '',
-			'type'     => isset( $_FILES['zip_file']['type'] ) ? sanitize_text_field( wp_unslash( $_FILES['zip_file']['type'] ) ) : '',
-			'tmp_name' => isset( $_FILES['zip_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['zip_file']['tmp_name'] ) ) : '',
-			'error'    => isset( $_FILES['zip_file']['error'] ) ? absint( $_FILES['zip_file']['error'] ) : UPLOAD_ERR_NO_FILE,
-			'size'     => isset( $_FILES['zip_file']['size'] ) ? absint( $_FILES['zip_file']['size'] ) : 0,
+			'name'     => $filename,
+			'type'     => 'application/zip',
+			'tmp_name' => $zip_path,
+			'error'    => UPLOAD_ERR_OK,
+			'size'     => filesize( $zip_path ),
 		);
 
 		$importer = new SiteMover_Importer();
 		$result   = $importer->import( $zip_file );
+
+		wp_delete_file( $zip_path );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
