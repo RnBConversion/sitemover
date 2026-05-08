@@ -17,9 +17,9 @@ define( 'SITEMOVER_VERSION', '1.0.0' );
 define( 'SITEMOVER_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'SITEMOVER_URL',     plugin_dir_url( __FILE__ ) );
 
-$_sitemover_upload_dir = wp_upload_dir();
-define( 'SITEMOVER_EXPORT_DIR', $_sitemover_upload_dir['basedir'] . '/sitemover-exports/' );
-unset( $_sitemover_upload_dir );
+$sitemover_upload_dir = wp_upload_dir();
+define( 'SITEMOVER_EXPORT_DIR', $sitemover_upload_dir['basedir'] . '/sitemover-exports/' );
+unset( $sitemover_upload_dir );
 
 require_once SITEMOVER_DIR . 'includes/class-sitemover-exporter.php';
 require_once SITEMOVER_DIR . 'includes/class-sitemover-importer.php';
