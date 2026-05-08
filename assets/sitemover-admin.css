@@ -1,0 +1,436 @@
+/* SiteMover admin styles */
+
+.sitemover-wrap {
+	max-width: 960px;
+	padding-top: 16px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.sitemover-header {
+	margin-bottom: 28px;
+}
+
+.sitemover-logo {
+	font-size: 30px;
+	font-weight: 800;
+	letter-spacing: -1px;
+	color: #1e1e1e;
+}
+
+.sitemover-logo span {
+	background: linear-gradient(135deg, #6366f1, #8b5cf6);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+.sitemover-header p {
+	color: #6b7280;
+	margin: 4px 0 0;
+	font-size: 15px;
+}
+
+/* ── Grid ────────────────────────────────────────────────── */
+
+.sitemover-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+}
+
+@media (max-width: 800px) {
+	.sitemover-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Card ────────────────────────────────────────────────── */
+
+.sitemover-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	box-shadow: 0 2px 8px rgba(0,0,0,.06);
+	overflow: hidden;
+}
+
+.sitemover-card-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 18px 22px;
+}
+
+.sitemover-card-head h2 {
+	font-size: 17px;
+	font-weight: 700;
+	margin: 0;
+	padding: 0;
+	color: #fff;
+}
+
+.sitemover-card-head .dashicons {
+	font-size: 22px;
+	width: 22px;
+	height: 22px;
+	color: rgba(255,255,255,.9);
+}
+
+.sitemover-export-head {
+	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.sitemover-import-head {
+	background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+}
+
+.sitemover-card-body {
+	padding: 22px;
+}
+
+.sitemover-card-body > p {
+	color: #374151;
+	margin: 0 0 16px;
+	font-size: 13.5px;
+	line-height: 1.6;
+}
+
+/* ── Export mode selector ────────────────────────────────── */
+
+.sitemover-modes {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.sitemover-mode-opt {
+	position: relative;
+}
+
+.sitemover-mode-opt input[type="radio"] {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+.sitemover-mode-opt label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 10px 6px;
+	background: #f9fafb;
+	border: 2px solid #e5e7eb;
+	border-radius: 10px;
+	cursor: pointer;
+	transition: border-color .15s, background .15s;
+	text-align: center;
+	line-height: 1.3;
+	min-height: 72px;
+}
+
+.sitemover-mode-opt label .dashicons {
+	font-size: 22px;
+	width: 22px;
+	height: 22px;
+	color: #9ca3af;
+	transition: color .15s;
+}
+
+.sitemover-mode-opt label strong {
+	display: block;
+	font-size: 12px;
+	color: #374151;
+}
+
+.sitemover-mode-opt label span:last-child {
+	font-size: 11px;
+	color: #9ca3af;
+}
+
+.sitemover-mode-opt input:checked + label {
+	border-color: #6366f1;
+	background: #eef2ff;
+}
+
+.sitemover-mode-opt input:checked + label .dashicons,
+.sitemover-mode-opt input:checked + label strong {
+	color: #4f46e5;
+}
+
+.sitemover-mode-opt input:focus-visible + label {
+	outline: 2px solid #6366f1;
+	outline-offset: 2px;
+}
+
+/* ── Checklist ───────────────────────────────────────────── */
+
+.sitemover-checklist {
+	list-style: none;
+	margin: 0 0 20px;
+	padding: 0;
+}
+
+.sitemover-checklist li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: #4b5563;
+	padding: 3px 0;
+}
+
+.sitemover-checklist .dashicons {
+	color: #22c55e;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+.sitemover-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 18px;
+	border: none;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: opacity .15s, transform .1s;
+	color: #fff !important;
+	width: 100%;
+	justify-content: center;
+}
+
+.sitemover-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.sitemover-btn:active:not(:disabled) { transform: translateY(0); }
+.sitemover-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.sitemover-btn--export { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.sitemover-btn--import { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+
+.sitemover-btn .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+/* ── Drop zone ───────────────────────────────────────────── */
+
+.sitemover-drop-zone {
+	border: 2px dashed #d1d5db;
+	border-radius: 10px;
+	background: #f9fafb;
+	padding: 28px 16px;
+	text-align: center;
+	cursor: pointer;
+	transition: border-color .2s, background .2s;
+	margin-bottom: 14px;
+	position: relative;
+}
+
+.sitemover-drop-zone:hover,
+.sitemover-drop-zone.is-over {
+	border-color: #ec4899;
+	background: #fff0f6;
+}
+
+.sitemover-drop-zone .dashicons {
+	font-size: 36px;
+	width: 36px;
+	height: 36px;
+	color: #d1d5db;
+	display: block;
+	margin: 0 auto 8px;
+}
+
+.sitemover-drop-zone p {
+	margin: 0;
+	color: #6b7280;
+	font-size: 13px;
+}
+
+.sitemover-drop-zone small {
+	display: block;
+	margin-top: 4px;
+	color: #9ca3af;
+	font-size: 11px;
+}
+
+.sitemover-drop-zone input[type="file"] {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+/* ── Selected file ───────────────────────────────────────── */
+
+.sitemover-file-info {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: #f0fdf4;
+	border: 1px solid #bbf7d0;
+	border-radius: 8px;
+	padding: 9px 13px;
+	margin-bottom: 14px;
+	font-size: 13px;
+	color: #166534;
+	word-break: break-all;
+}
+
+.sitemover-file-info .dashicons {
+	flex-shrink: 0;
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+	color: #16a34a;
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+
+.sitemover-progress {
+	margin-top: 16px;
+}
+
+.sitemover-bar-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 6px;
+}
+
+.sitemover-bar {
+	flex: 1;
+	height: 8px;
+	background: #e5e7eb;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.sitemover-fill {
+	height: 100%;
+	width: 0;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #6366f1, #8b5cf6);
+	transition: width .35s ease;
+}
+
+.sitemover-fill--import {
+	background: linear-gradient(90deg, #ec4899, #f43f5e);
+}
+
+.sitemover-pct {
+	font-size: 13px;
+	font-weight: 700;
+	color: #6366f1;
+	min-width: 38px;
+	text-align: right;
+	flex-shrink: 0;
+}
+
+.sitemover-pct--import {
+	color: #ec4899;
+}
+
+.sitemover-progress-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.sitemover-status {
+	font-size: 12px;
+	color: #6b7280;
+	margin: 0;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sitemover-eta {
+	font-size: 11px;
+	color: #9ca3af;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+/* ── Cancel button ───────────────────────────────────────── */
+
+.sitemover-cancel-btn {
+	background: none;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	padding: 4px 12px;
+	font-size: 12px;
+	color: #6b7280;
+	cursor: pointer;
+	transition: background .15s, color .15s, border-color .15s;
+}
+
+.sitemover-cancel-btn:hover {
+	background: #fef2f2;
+	border-color: #fca5a5;
+	color: #dc2626;
+}
+
+/* ── Result box ──────────────────────────────────────────── */
+
+.sitemover-result {
+	margin-top: 16px;
+	font-size: 13px;
+	line-height: 1.6;
+	border-radius: 8px;
+}
+
+.sitemover-result:empty { display: none; }
+
+.sitemover-result.is-success {
+	background: #f0fdf4;
+	border: 1px solid #bbf7d0;
+	color: #166534;
+	padding: 13px 16px;
+}
+
+.sitemover-result.is-error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #991b1b;
+	padding: 13px 16px;
+}
+
+/* ── Download link ───────────────────────────────────────── */
+
+.sitemover-dl-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 10px;
+	padding: 8px 14px;
+	background: #166534;
+	color: #fff !important;
+	border-radius: 7px;
+	font-size: 13px;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background .15s;
+}
+
+.sitemover-dl-link:hover { background: #15803d; }
+
+.sitemover-dl-link .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
