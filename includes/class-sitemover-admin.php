@@ -14,6 +14,8 @@ class SiteMover_Admin {
 		add_action( 'wp_ajax_sitemover_import_chunk',    array( $this, 'ajax_import_chunk' ) );
 		add_action( 'wp_ajax_sitemover_import_finalize', array( $this, 'ajax_import_finalize' ) );
 		add_action( 'wp_ajax_sitemover_dl',              array( $this, 'ajax_download' ) );
+		add_action( 'wp_ajax_sitemover_activate_license',   array( $this, 'ajax_activate_license' ) );
+		add_action( 'wp_ajax_sitemover_deactivate_license', array( $this, 'ajax_deactivate_license' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -54,12 +56,20 @@ class SiteMover_Admin {
 			true
 		);
 
+		$lic_data = get_option( 'sitemover_license_data', array() );
+
 		wp_localize_script( 'sitemover', 'SiteMover', array(
 			'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 			'nonce'           => wp_create_nonce( 'sitemover' ),
 			'importChunkSize' => min( 50 * 1024 * 1024, (int) ( wp_max_upload_size() * 0.5 ) ),
 			'importSizeLimit' => 2 * 1024 * 1024 * 1024,
 			'chunkSize'       => 50,
+			'license'         => array(
+				'key'     => get_option( 'sitemover_license_key', '' ),
+				'status'  => $lic_data['status']  ?? '',
+				'plan'    => $lic_data['plan']     ?? '',
+				'expires' => $lic_data['expires_at'] ?? '',
+			),
 			'i18n'            => array(
 				'selectZip'       => __( 'Please select a .zip file.', 'sitemover' ),
 				'fileTooLarge'    => __( 'File exceeds the 2 GB import limit.', 'sitemover' ),
@@ -210,6 +220,69 @@ class SiteMover_Admin {
 				</div>
 
 			</div><!-- .sitemover-grid -->
+
+			<!-- ====== LICENSE ====== -->
+			<?php
+			$lic_key  = get_option( 'sitemover_license_key', '' );
+			$lic_data = get_option( 'sitemover_license_data', array() );
+			$is_active = ( $lic_data['status'] ?? '' ) === 'active';
+			?>
+			<div class="sitemover-card sitemover-license-card">
+				<div class="sitemover-card-head sitemover-license-head">
+					<span class="dashicons dashicons-lock"></span>
+					<h2><?php esc_html_e( 'License', 'sitemover' ); ?></h2>
+					<?php if ( $is_active ) : ?>
+						<span class="sitemover-lic-badge sitemover-lic-badge--active">
+							&#10003; <?php echo esc_html( ucfirst( $lic_data['plan'] ?? 'Pro' ) ); ?> &mdash; <?php esc_html_e( 'Active', 'sitemover' ); ?>
+						</span>
+					<?php else : ?>
+						<span class="sitemover-lic-badge sitemover-lic-badge--free">
+							<?php esc_html_e( 'Free', 'sitemover' ); ?>
+						</span>
+					<?php endif; ?>
+				</div>
+				<div class="sitemover-card-body">
+					<?php if ( $is_active ) : ?>
+						<div class="sitemover-lic-active">
+							<div class="sitemover-lic-row">
+								<span class="sitemover-lic-lbl"><?php esc_html_e( 'License key', 'sitemover' ); ?></span>
+								<code class="sitemover-lic-key"><?php echo esc_html( $lic_key ); ?></code>
+							</div>
+							<div class="sitemover-lic-row">
+								<span class="sitemover-lic-lbl"><?php esc_html_e( 'Plan', 'sitemover' ); ?></span>
+								<span><?php echo esc_html( ucfirst( $lic_data['plan'] ?? '' ) ); ?></span>
+							</div>
+							<?php if ( ! empty( $lic_data['expires_at'] ) ) : ?>
+							<div class="sitemover-lic-row">
+								<span class="sitemover-lic-lbl"><?php esc_html_e( 'Expires', 'sitemover' ); ?></span>
+								<span><?php echo esc_html( date_i18n( 'M j, Y', strtotime( $lic_data['expires_at'] ) ) ); ?></span>
+							</div>
+							<?php endif; ?>
+							<button id="sitemover-deactivate-btn" class="sitemover-btn sitemover-btn--deactivate">
+								<?php esc_html_e( 'Deactivate license', 'sitemover' ); ?>
+							</button>
+						</div>
+					<?php else : ?>
+						<p><?php echo wp_kses( __( 'Enter your license key to unlock <strong>Pro</strong> features — unlimited site size and more.', 'sitemover' ), array( 'strong' => array() ) ); ?></p>
+						<div class="sitemover-lic-form">
+							<input type="text" id="sitemover-license-input" class="sitemover-lic-input"
+								placeholder="SITEMOVER-XXXX-XXXX-XXXX-XXXX-XXXX"
+								value="<?php echo esc_attr( $lic_key ); ?>">
+							<button id="sitemover-activate-btn" class="sitemover-btn sitemover-btn--activate">
+								<?php esc_html_e( 'Activate', 'sitemover' ); ?>
+							</button>
+						</div>
+						<div id="sitemover-license-msg" class="sitemover-lic-msg" hidden></div>
+						<p class="sitemover-lic-buy">
+							<?php esc_html_e( "Don't have a license?", 'sitemover' ); ?>
+							<a href="<?php echo esc_url( SITEMOVER_LICENSE_SERVER ); ?>" target="_blank" rel="noopener">
+								<?php esc_html_e( 'Get Pro &rarr;', 'sitemover' ); ?>
+							</a>
+						</p>
+					<?php endif; ?>
+				</div>
+			</div><!-- .sitemover-license-card -->
+
 		</div><!-- .sitemover-wrap -->
 		<?php
 	}
@@ -448,6 +521,72 @@ class SiteMover_Admin {
 		wp_delete_file( $real_file );
 
 		exit;
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: activate license
+	// -------------------------------------------------------------------------
+
+	public function ajax_activate_license() {
+		check_ajax_referer( 'sitemover', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sitemover' ) ), 403 );
+		}
+
+		$key = strtoupper( sanitize_text_field( wp_unslash( $_POST['license_key'] ?? '' ) ) );
+		if ( ! $key ) {
+			wp_send_json_error( array( 'message' => __( 'Please enter a license key.', 'sitemover' ) ) );
+		}
+
+		$server = untrailingslashit( SITEMOVER_LICENSE_SERVER );
+		$url    = add_query_arg( array(
+			'license_key' => rawurlencode( $key ),
+			'domain'      => rawurlencode( home_url() ),
+		), $server . '/wp-json/sitemover/v1/validate-license' );
+
+		$response = wp_remote_get( $url, array( 'timeout' => 15 ) );
+
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_error( array( 'message' => __( 'Could not reach license server. Please try again.', 'sitemover' ) ) );
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( empty( $body['valid'] ) ) {
+			$msg = $body['message'] ?? __( 'Invalid or expired license key.', 'sitemover' );
+			wp_send_json_error( array( 'message' => $msg ) );
+		}
+
+		update_option( 'sitemover_license_key', $key );
+		update_option( 'sitemover_license_data', array(
+			'status'     => 'active',
+			'plan'       => $body['plan']       ?? 'pro',
+			'expires_at' => $body['expires_at'] ?? '',
+		) );
+
+		wp_send_json_success( array(
+			'message'    => __( 'License activated successfully!', 'sitemover' ),
+			'plan'       => $body['plan']       ?? 'pro',
+			'expires_at' => $body['expires_at'] ?? '',
+		) );
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX: deactivate license
+	// -------------------------------------------------------------------------
+
+	public function ajax_deactivate_license() {
+		check_ajax_referer( 'sitemover', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sitemover' ) ), 403 );
+		}
+
+		delete_option( 'sitemover_license_key' );
+		delete_option( 'sitemover_license_data' );
+
+		wp_send_json_success( array( 'message' => __( 'License deactivated.', 'sitemover' ) ) );
 	}
 
 	// -------------------------------------------------------------------------

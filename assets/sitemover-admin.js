@@ -329,3 +329,70 @@ jQuery( function ( $ ) {
 		return result;
 	}
 } );
+
+// ── License activation ─────────────────────────────────────
+
+jQuery( function ( $ ) {
+	var $activateBtn   = $( '#sitemover-activate-btn' );
+	var $deactivateBtn = $( '#sitemover-deactivate-btn' );
+	var $input         = $( '#sitemover-license-input' );
+	var $msg           = $( '#sitemover-license-msg' );
+
+	function showMsg( text, type ) {
+		$msg.removeClass( 'sitemover-lic-msg--success sitemover-lic-msg--error' )
+			.addClass( 'sitemover-lic-msg--' + type )
+			.text( text )
+			.removeAttr( 'hidden' );
+	}
+
+	if ( $activateBtn.length ) {
+		$activateBtn.on( 'click', function () {
+			var key = $input.val().trim();
+			if ( ! key ) {
+				showMsg( 'Please enter a license key.', 'error' );
+				return;
+			}
+
+			$activateBtn.prop( 'disabled', true ).text( 'Activating…' );
+			$msg.attr( 'hidden', true );
+
+			$.post( SiteMover.ajaxUrl, {
+				action:      'sitemover_activate_license',
+				nonce:       SiteMover.nonce,
+				license_key: key,
+			} ).done( function ( res ) {
+				if ( res.success ) {
+					showMsg( res.data.message, 'success' );
+					setTimeout( function () { location.reload(); }, 1200 );
+				} else {
+					showMsg( res.data.message || 'Activation failed.', 'error' );
+					$activateBtn.prop( 'disabled', false ).text( 'Activate' );
+				}
+			} ).fail( function () {
+				showMsg( 'Request failed. Please try again.', 'error' );
+				$activateBtn.prop( 'disabled', false ).text( 'Activate' );
+			} );
+		} );
+	}
+
+	if ( $deactivateBtn.length ) {
+		$deactivateBtn.on( 'click', function () {
+			if ( ! confirm( 'Deactivate license on this site?' ) ) { return; }
+
+			$deactivateBtn.prop( 'disabled', true ).text( 'Deactivating…' );
+
+			$.post( SiteMover.ajaxUrl, {
+				action: 'sitemover_deactivate_license',
+				nonce:  SiteMover.nonce,
+			} ).done( function ( res ) {
+				if ( res.success ) {
+					location.reload();
+				} else {
+					$deactivateBtn.prop( 'disabled', false ).text( 'Deactivate license' );
+				}
+			} ).fail( function () {
+				$deactivateBtn.prop( 'disabled', false ).text( 'Deactivate license' );
+			} );
+		} );
+	}
+} );

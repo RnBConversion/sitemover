@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'SITEMOVER_VERSION', '1.1.0' );
 define( 'SITEMOVER_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'SITEMOVER_URL',     plugin_dir_url( __FILE__ ) );
+// Update this URL after deploying sitemover-licenses to your server.
+define( 'SITEMOVER_LICENSE_SERVER', 'https://your-license-server.com' );
 
 $sitemover_upload_dir = wp_upload_dir();
 define( 'SITEMOVER_EXPORT_DIR', $sitemover_upload_dir['basedir'] . '/sitemover-exports/' );
