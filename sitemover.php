@@ -3,7 +3,7 @@
  * Plugin Name: SiteMover
  * Plugin URI:  https://github.com/RnBConversion/sitemover
  * Description: Export your WordPress site (database + wp-content) to a ZIP and import it on another server with automatic URL replacement.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      rolandasb
  * License:     GPL-2.0+
  * Text Domain: sitemover
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SITEMOVER_VERSION', '1.0.0' );
+define( 'SITEMOVER_VERSION', '1.1.0' );
 define( 'SITEMOVER_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'SITEMOVER_URL',     plugin_dir_url( __FILE__ ) );
 
