@@ -316,7 +316,7 @@ class SiteMover_Admin {
 			wp_send_json_error( array( 'message' => __( 'Invalid upload ID.', 'sitemover' ) ) );
 		}
 
-		if ( empty( $_FILES['chunk'] ) || $_FILES['chunk']['error'] !== UPLOAD_ERR_OK ) {
+		if ( empty( $_FILES['chunk'] ) || ! isset( $_FILES['chunk']['error'], $_FILES['chunk']['tmp_name'] ) || (int) $_FILES['chunk']['error'] !== UPLOAD_ERR_OK ) {
 			wp_send_json_error( array( 'message' => __( 'Chunk upload failed.', 'sitemover' ) ) );
 		}
 
@@ -325,8 +325,9 @@ class SiteMover_Admin {
 		}
 
 		$chunk_path = SITEMOVER_EXPORT_DIR . 'upload_' . $upload_id . '_chunk_' . $chunk_index;
+		$chunk_tmp  = isset( $_FILES['chunk']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['chunk']['tmp_name'] ) ) : '';
 
-		if ( ! move_uploaded_file( sanitize_text_field( wp_unslash( $_FILES['chunk']['tmp_name'] ) ), $chunk_path ) ) {
+		if ( ! $chunk_tmp || ! move_uploaded_file( $chunk_tmp, $chunk_path ) ) { // phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- No WordPress filesystem API equivalent for moving uploaded file chunks.
 			wp_send_json_error( array( 'message' => __( 'Cannot save chunk.', 'sitemover' ) ) );
 		}
 

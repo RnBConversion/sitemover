@@ -4,7 +4,7 @@
  * Plugin URI:  https://github.com/RnBConversion/sitemover
  * Description: Export your WordPress site (database + wp-content) to a ZIP and import it on another server with automatic URL replacement.
  * Version:     1.1.0
- * Requires at least: 5.8
+ * Requires at least: 5.9
  * Requires PHP:      7.4
  * Author:      rolandasb
  * License:     GPL-2.0+

@@ -4,7 +4,7 @@ Tags: migration, backup, clone, move, import export
 Requires at least: 5.9
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -137,10 +137,17 @@ Export is safe and read-only — it never modifies any data. For import, the plu
 
 == Changelog ==
 
+= 1.1.0 =
+* Increased import limit to 2 GB via chunked file upload — bypasses PHP upload size limits.
+* Fixed PHP_CodeSniffer warnings: validated $_FILES subkeys before use.
+
 = 1.0.0 =
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Upgrade to support importing ZIP files up to 2 GB regardless of your server's PHP upload limit.
 
 = 1.0.0 =
 Initial release of SiteMover.
