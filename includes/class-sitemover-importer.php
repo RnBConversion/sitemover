@@ -55,6 +55,8 @@ class SiteMover_Importer {
 			$this->replace_urls( $old_url, $new_url );
 		}
 
+		$this->clear_wp_content();
+
 		$result = $this->restore_wp_content();
 		if ( is_wp_error( $result ) ) {
 			$this->cleanup();
@@ -139,6 +141,8 @@ class SiteMover_Importer {
 			$sql = str_replace( '`' . $old_prefix, '`' . $new_prefix, $sql );
 		}
 
+		$this->drop_all_tables();
+
 		$statements = $this->parse_sql( $sql );
 		unset( $sql );
 
@@ -150,6 +154,28 @@ class SiteMover_Importer {
 		$wpdb->show_errors();
 
 		return true;
+	}
+
+	private function drop_all_tables() {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$tables = $wpdb->get_results( 'SHOW TABLES', ARRAY_N );
+		if ( empty( $tables ) ) {
+			return;
+		}
+
+		$wpdb->hide_errors();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'SET FOREIGN_KEY_CHECKS = 0' );
+		foreach ( $tables as $row ) {
+			$table = esc_sql( $row[0] );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+			$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'SET FOREIGN_KEY_CHECKS = 1' );
+		$wpdb->show_errors();
 	}
 
 	/**
@@ -361,6 +387,31 @@ class SiteMover_Importer {
 	// -------------------------------------------------------------------------
 	// wp-content restore
 	// -------------------------------------------------------------------------
+
+	private function clear_wp_content() {
+		$dest           = WP_CONTENT_DIR . DIRECTORY_SEPARATOR;
+		$exports_dir    = realpath( SITEMOVER_EXPORT_DIR );
+
+		$iter = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $dest, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+
+		foreach ( $iter as $item ) {
+			$real = $item->getRealPath();
+
+			// Never touch the sitemover-exports dir — the temp import lives there.
+			if ( $exports_dir && strpos( $real, $exports_dir ) === 0 ) {
+				continue;
+			}
+
+			if ( $item->isDir() ) {
+				@rmdir( $real ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			} else {
+				wp_delete_file( $real );
+			}
+		}
+	}
 
 	private function restore_wp_content() {
 		$source = $this->temp_dir . 'wp-content' . DIRECTORY_SEPARATOR;
