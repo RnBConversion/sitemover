@@ -7,7 +7,7 @@ class SiteMover_Exporter {
 
 	const CHUNK_SIZE      = 50;
 	const JOB_TTL         = 3600; // seconds
-	const FREE_SIZE_LIMIT = 2147483648; // 2 GB in bytes
+	const FREE_SIZE_LIMIT = 524288000; // 500 MB in bytes
 
 	// -------------------------------------------------------------------------
 	// Public API
@@ -317,7 +317,7 @@ class SiteMover_Exporter {
 			if ( $total_size > self::FREE_SIZE_LIMIT ) {
 				return new WP_Error(
 					'size_limit',
-					__( '⚠️ Your site exceeds the 2 GB free plan limit. To export larger sites, upgrade to SiteMover Pro.', 'sitemover' )
+					__( '⚠️ Your site exceeds the 500 MB free plan limit. To export larger sites, upgrade to SiteMover Pro.', 'sitemover' )
 				);
 			}
 

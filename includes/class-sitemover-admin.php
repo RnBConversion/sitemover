@@ -62,7 +62,7 @@ class SiteMover_Admin {
 			'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 			'nonce'           => wp_create_nonce( 'sitemover' ),
 			'importChunkSize' => min( 50 * 1024 * 1024, (int) ( wp_max_upload_size() * 0.5 ) ),
-			'importSizeLimit' => 2 * 1024 * 1024 * 1024,
+			'importSizeLimit' => 500 * 1024 * 1024,
 			'chunkSize'       => 50,
 			'license'         => array(
 				'key'     => get_option( 'sitemover_license_key', '' ),
@@ -72,7 +72,7 @@ class SiteMover_Admin {
 			),
 			'i18n'            => array(
 				'selectZip'       => __( 'Please select a .zip file.', 'sitemover' ),
-				'fileTooLarge'    => __( 'File exceeds the 2 GB import limit.', 'sitemover' ),
+				'fileTooLarge'    => __( 'File exceeds the 500 MB import limit.', 'sitemover' ),
 				'preparing'       => __( 'Preparing…', 'sitemover' ),
 				'initializing'    => __( 'Initializing…', 'sitemover' ),
 				'requestFailed'   => __( 'Request failed or timed out. Try again.', 'sitemover' ),
@@ -119,7 +119,7 @@ class SiteMover_Admin {
 					</div>
 					<div class="sitemover-card-body">
 						<p><?php echo wp_kses(
-							__( 'Creates a <strong>ZIP file</strong> with your database and/or <code>wp-content</code> folder. Supports archives up to 2&nbsp;GB.', 'sitemover' ),
+							__( 'Creates a <strong>ZIP file</strong> with your database and/or <code>wp-content</code> folder. Supports archives up to 500&nbsp;MB.', 'sitemover' ),
 							array( 'strong' => array(), 'code' => array() )
 						); ?></p>
 
@@ -193,7 +193,7 @@ class SiteMover_Admin {
 						<div class="sitemover-drop-zone" id="sitemover-drop-zone" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'Upload ZIP file', 'sitemover' ); ?>">
 							<span class="dashicons dashicons-media-archive"></span>
 							<p><?php echo wp_kses( __( 'Drop ZIP here or <u>browse</u>', 'sitemover' ), array( 'u' => array() ) ); ?></p>
-							<small><?php esc_html_e( 'Max import: 2 GB', 'sitemover' ); ?></small>
+							<small><?php esc_html_e( 'Max import: 500 MB', 'sitemover' ); ?></small>
 							<input type="file" id="sitemover-file-input" accept=".zip" aria-hidden="true">
 						</div>
 

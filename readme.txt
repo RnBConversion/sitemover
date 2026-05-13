@@ -8,7 +8,7 @@ Stable tag: 1.1.0
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Export your WordPress site to a ZIP and import it on any server — database, files, and automatic URL replacement included. Free up to 2 GB.
+Export your WordPress site to a ZIP and import it on any server — database, files, and automatic URL replacement included. Free up to 500 MB.
 
 == Description ==
 
@@ -31,7 +31,7 @@ Export your entire site (database + `wp-content`) to a single ZIP file directly 
 
 = Free Plan Limits =
 
-The free version supports sites with a `wp-content` folder up to **2 GB**. Sites larger than 2 GB require SiteMover Pro.
+The free version supports sites with a `wp-content` folder up to **500 MB**. Sites larger than 500 MB require SiteMover Pro.
 
 = Typical Use Cases =
 
@@ -93,9 +93,9 @@ Yes. SiteMover must be active on the **source** site to create the export ZIP an
 
 Yes. When you import a SiteMover ZIP, the plugin detects the old site URL stored in the archive and replaces every occurrence with the new site's URL. This includes standard database columns as well as PHP serialised data (such as widget settings, theme customiser data, and many plugin options).
 
-= My site is larger than 2 GB. What should I do? =
+= My site is larger than 500 MB. What should I do? =
 
-The free version supports exports up to 2 GB (`wp-content` folder size). Upgrade to **SiteMover Pro** to remove this limit and migrate sites of any size.
+The free version supports exports up to 500 MB (`wp-content` folder size). Upgrade to **SiteMover Pro** to remove this limit and migrate sites of any size.
 
 = Does the export include all plugins and themes? =
 
@@ -138,7 +138,7 @@ Export is safe and read-only — it never modifies any data. For import, the plu
 == Changelog ==
 
 = 1.1.0 =
-* Increased import limit to 2 GB via chunked file upload — bypasses PHP upload size limits.
+* Increased import limit to 500 MB via chunked file upload — bypasses PHP upload size limits.
 * Fixed PHP_CodeSniffer warnings: validated $_FILES subkeys before use.
 
 = 1.0.0 =
@@ -147,7 +147,7 @@ Export is safe and read-only — it never modifies any data. For import, the plu
 == Upgrade Notice ==
 
 = 1.1.0 =
-Upgrade to support importing ZIP files up to 2 GB regardless of your server's PHP upload limit.
+Upgrade to support importing ZIP files up to 500 MB regardless of your server's PHP upload limit.
 
 = 1.0.0 =
 Initial release of SiteMover.
